@@ -93,7 +93,7 @@ public class UserMessageActivity extends AppCompatActivity {
                                 recentMessage.put("timeStamp", messageDateTime);
                                 recentMessage.put("clientID", clientID);
                                 messageDB.collection("Users").document(userID)
-                                        .collection("Chatlist").document()
+                                        .collection("Chatlist").document(clientID)
                                         .set(recentMessage);
 
                                 Map<String, Object> receiveMessage = new HashMap<>();
@@ -101,7 +101,7 @@ public class UserMessageActivity extends AppCompatActivity {
                                 receiveMessage.put("timeStamp", messageDateTime);
                                 receiveMessage.put("userID", userID);
                                 messageDB.collection("Clients").document(clientID)
-                                        .collection("Chatlist").document()
+                                        .collection("Chatlist").document(userID)
                                         .set(receiveMessage);
 
                             }
