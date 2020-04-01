@@ -1,12 +1,15 @@
 package com.hiresight.hiresightuser;
 
+import java.util.Date;
+
 public class UserMessage {
-    private String senderID, receiverID, message, dateTime;
+    private String senderID, receiverID, message;
+    private Date dateTime;
 
     public UserMessage() {
     }
 
-    public UserMessage(String sender, String receiver, String message, String dateTime) {
+    public UserMessage(String sender, String receiver, String message, Date dateTime) {
         this.senderID = sender;
         this.receiverID = receiver;
         this.message = message;
@@ -37,11 +40,11 @@ public class UserMessage {
         this.message = message;
     }
 
-    public String getDateTime() {
+    public Date getDateTime() {
         return dateTime;
     }
 
-    public void setDateTime(String dateTime) {
+    public void setDateTime(Date dateTime) {
         this.dateTime = dateTime;
     }
 }

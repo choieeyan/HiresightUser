@@ -23,15 +23,19 @@ import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
+import io.opencensus.internal.Utils;
+
 public class UserMessageAdapter extends FirestoreRecyclerAdapter<UserMessage, UserMessageAdapter.MessageHolder> {
 
     public static final int MSG_RECEIVED = 0;
     public static final int MSG_SENT = 1;
     private FirebaseUser currentUser;
+    private String clientID;
 
 
-    public UserMessageAdapter(@NonNull FirestoreRecyclerOptions<UserMessage> options) {
+    public UserMessageAdapter(@NonNull FirestoreRecyclerOptions<UserMessage> options, String clientID) {
         super(options);
+        this.clientID = clientID;
     }
 
 
@@ -40,8 +44,6 @@ public class UserMessageAdapter extends FirestoreRecyclerAdapter<UserMessage, Us
     protected void onBindViewHolder(@NonNull final MessageHolder messageHolder, int i, @NonNull final UserMessage userMessage) {
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-
         DocumentReference reference = db.collection("Clients").document(userMessage.getReceiverID());
         reference.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
@@ -61,9 +63,19 @@ public class UserMessageAdapter extends FirestoreRecyclerAdapter<UserMessage, Us
         });
 
         messageHolder.messageText.setText(userMessage.getMessage());
-        messageHolder.messageTime.setText(userMessage.getDateTime());
+        messageHolder.messageTime.setText(userMessage.getDateTime().toString());
+        currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
+        if ((currentUser.getUid().equals(userMessage.getReceiverID()) || currentUser.getUid().equals(userMessage.getSenderID()))
+                && clientID.equals(userMessage.getReceiverID()) || clientID.equals(userMessage.getSenderID())) {
+            messageHolder.itemView.setVisibility(View.VISIBLE);
+            messageHolder.itemView.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        } else{
+            messageHolder.itemView.setVisibility(View.GONE);
+            messageHolder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
+        }
     }
+
 
     @NonNull
     @Override

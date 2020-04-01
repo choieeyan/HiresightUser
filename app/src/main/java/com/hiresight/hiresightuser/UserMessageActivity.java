@@ -12,27 +12,33 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.auth.User;
 import com.google.firebase.storage.StorageReference;
+import com.google.firestore.v1.DocumentTransform;
 
 import java.lang.ref.Reference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +55,8 @@ public class UserMessageActivity extends AppCompatActivity {
     RecyclerView recyclerView;
     private CollectionReference retrieveRef;
     private UserMessageAdapter userMessageAdapter;
-
+    private boolean loading = true;
+    private DocumentSnapshot lastVisible;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +75,7 @@ public class UserMessageActivity extends AppCompatActivity {
 
         setUpRecyclerView();
 
+
     }
 
     public void storeMessage(){
@@ -77,9 +85,10 @@ public class UserMessageActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 final String userID = auth.getCurrentUser().getUid();
-                String messageDate = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
-                String messageTime = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-                final String messageDateTime = messageDate + " " + messageTime;
+                //String messageDate = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
+                //String messageTime = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+                //final String messageDateTime = messageDate + " " + messageTime;
+                final Date messageDateTime = new Date();
                 UserMessage message = new UserMessage(userID, clientID, messageSend.getText().toString(), messageDateTime);
 
                 messageDB.collection("Messages")
@@ -90,7 +99,7 @@ public class UserMessageActivity extends AppCompatActivity {
                                 documentID = documentReference.getId();
                                 Map<String, Object> recentMessage = new HashMap<>();
                                 recentMessage.put("recentMessage", documentID);
-                                recentMessage.put("timeStamp", messageDateTime);
+                                recentMessage.put("dateTime", messageDateTime);
                                 recentMessage.put("clientID", clientID);
                                 messageDB.collection("Users").document(userID)
                                         .collection("Chatlist").document(clientID)
@@ -98,7 +107,7 @@ public class UserMessageActivity extends AppCompatActivity {
 
                                 Map<String, Object> receiveMessage = new HashMap<>();
                                 receiveMessage.put("recentMessage", documentID);
-                                receiveMessage.put("timeStamp", messageDateTime);
+                                receiveMessage.put("dateTime", messageDateTime);
                                 receiveMessage.put("userID", userID);
                                 messageDB.collection("Clients").document(clientID)
                                         .collection("Chatlist").document(userID)
@@ -113,6 +122,7 @@ public class UserMessageActivity extends AppCompatActivity {
                             }
 
                         });
+
 
 
             }
@@ -144,22 +154,85 @@ public class UserMessageActivity extends AppCompatActivity {
 
 
     private void setUpRecyclerView(){
-        Query query = retrieveRef.whereEqualTo("senderID", auth.getUid())
-                                 .whereEqualTo("receiverID", clientID)
-                                 .orderBy("dateTime", Query.Direction.ASCENDING);
-
+        Query query = retrieveRef.orderBy("dateTime", Query.Direction.ASCENDING);
 
         FirestoreRecyclerOptions<UserMessage> options = new FirestoreRecyclerOptions.Builder<UserMessage>()
                 .setQuery(query, UserMessage.class)
                 .build();
 
-        userMessageAdapter = new UserMessageAdapter(options);
+        userMessageAdapter = new UserMessageAdapter(options, clientID);
+        userMessageAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                recyclerView.smoothScrollToPosition(userMessageAdapter.getItemCount());
+            }
+
+        });
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(userMessageAdapter);
+
+    }
+    /*
+
+    private void loadMessages() {
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+            }
+
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                LinearLayoutManager linearLayoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+
+                if (loading) {
+                    if (linearLayoutManager != null && linearLayoutManager.findFirstVisibleItemPosition() == linearLayoutManager.getItemCount() - linearLayoutManager.getChildCount()) {
+                        loading = false;
+                        Query nextquery = retrieveRef.orderBy("dateTime", Query.Direction.ASCENDING)
+                                .limit(2)
+                                .startAt(lastVisible);
+
+                        nextquery.get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                            @Override
+                            public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                                lastVisible = queryDocumentSnapshots.getDocuments()
+                                        .get(queryDocumentSnapshots.size() -1);
+                            }
+                        });
+
+                        nextquery.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+
+                                if (task.isSuccessful()) {
+                                    // add data to recyclerView/listview
+                                    lastVisible = documentSnapshots.getDocuments().get(documentSnapshots.size() -1);
+
+
+                                    if (task.getResult().size() < postPerPageLimit) {
+                                        // if your result size is less than your query size which means all the result has been displayed and there is no any other data to display
+                                        isEndChildResults = true;
+                                    }
+                                }
+
+                            }
+                        }
+                    });
+
+
+                        FirestoreRecyclerOptions<UserMessage> options = new FirestoreRecyclerOptions.Builder<UserMessage>()
+                                .setQuery(query, UserMessage.class)
+                                .build();
+                    }
+                }
+            }
+        });
     }
 
-
+     */
 
     @Override
     public void onStart() {

@@ -27,6 +27,7 @@ public class UserMessageListAdapter extends FirestoreRecyclerAdapter<Chatlist, U
     DocumentReference reference, ref;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
     FirebaseAuth auth;
+    private OnItemClickListener listener;
 
     public UserMessageListAdapter(@NonNull FirestoreRecyclerOptions<Chatlist> options) {
         super(options);
@@ -90,9 +91,24 @@ public class UserMessageListAdapter extends FirestoreRecyclerAdapter<Chatlist, U
             companyName = itemView.findViewById(R.id.companyName);
             messageText = itemView.findViewById(R.id.messageText);
             client_image = itemView.findViewById(R.id.client_image);
-
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int position = getAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION && listener != null){
+                        listener.onItemClick(getSnapshots().getSnapshot(position),position);
+                    }
+                }
+            });
 
         }
+    }
+    public interface OnItemClickListener{
+        void onItemClick(DocumentSnapshot documentSnapshot, int position);
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener){
+        this.listener = listener;
     }
 
 

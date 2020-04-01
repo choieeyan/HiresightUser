@@ -111,7 +111,7 @@ public class Chat extends Fragment {
     private void setUpRecyclerView(){
 
 
-        Query query = reference.orderBy("timeStamp", Query.Direction.ASCENDING);
+        Query query = reference.orderBy("dateTime", Query.Direction.ASCENDING);
 
         FirestoreRecyclerOptions<Chatlist> options = new FirestoreRecyclerOptions.Builder<Chatlist>()
                 .setQuery(query, Chatlist.class)
@@ -121,6 +121,20 @@ public class Chat extends Fragment {
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
+
+        adapter.setOnItemClickListener(new UserMessageListAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(DocumentSnapshot documentSnapshot, int position) {
+                Chatlist chatlist = documentSnapshot.toObject(Chatlist.class);
+                String id = documentSnapshot.getId(); //get id of database
+                String clientID = chatlist.getClientID();
+                Intent intent = new Intent(getActivity(), UserMessageActivity.class);
+                intent.putExtra("ClientID", clientID);
+                startActivity(intent);
+
+
+            }
+        });
     }
 
     @Override

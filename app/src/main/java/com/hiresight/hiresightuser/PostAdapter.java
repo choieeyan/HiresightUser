@@ -1,6 +1,7 @@
 package com.hiresight.hiresightuser;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.ColorSpace;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,6 +20,7 @@ import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -29,15 +31,21 @@ import java.util.Map;
 
 public class PostAdapter extends FirestoreRecyclerAdapter<ModelPost, PostAdapter.PostHolder> {
     private OnItemClickListener listener;
+    private Context context;
 
-    public PostAdapter(@NonNull FirestoreRecyclerOptions<ModelPost> options) {
+
+
+    public PostAdapter(@NonNull FirestoreRecyclerOptions<ModelPost> options, Context context) {
         super(options);
+        this.context = context;
     }
 
     @Override
     protected void onBindViewHolder(@NonNull final PostHolder postHolder, int i, @NonNull final ModelPost modelPost) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
+        final FirebaseAuth auth = FirebaseAuth.getInstance();
         DocumentReference reference = db.collection("Clients").document(modelPost.getClientID());
+
         reference.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
@@ -49,6 +57,7 @@ public class PostAdapter extends FirestoreRecyclerAdapter<ModelPost, PostAdapter
                         modelPost.setCompanyName(companyName);  //dont really need this: can delete this in modelpost too.
                         postHolder.companyName.setText(modelPost.getCompanyName()); //straight set string companyName.
                         Picasso.get().load(imageURL).into(postHolder.clientImage);
+
                     } else {
                         Log.d("TAG", "No such document");
                     }
@@ -56,6 +65,7 @@ public class PostAdapter extends FirestoreRecyclerAdapter<ModelPost, PostAdapter
                     Log.d("TAG", "get failed with ", task.getException());
                 }
             }
+
         });
 
 
@@ -65,8 +75,24 @@ public class PostAdapter extends FirestoreRecyclerAdapter<ModelPost, PostAdapter
         postHolder.product.setText(modelPost.getProduct());
         postHolder.paxRequired.setText(modelPost.getPaxRequired());
         postHolder.profession.setText(modelPost.getProfession());
+        postHolder.chat.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(context, UserMessageActivity.class);
+                intent.putExtra("ClientID", modelPost.getClientID());
+                context.startActivity(intent);
+            }
+        });
 
-
+        postHolder.apply.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String postID = getSnapshots().getSnapshot(postHolder.getAdapterPosition()).getId();
+                Intent intent = new Intent(context, ApplyActivity.class);
+                intent.putExtra("postID", postID);
+                context.startActivity(intent);
+            }
+        });
     }
 
     @NonNull
@@ -94,6 +120,7 @@ public class PostAdapter extends FirestoreRecyclerAdapter<ModelPost, PostAdapter
             apply = itemView.findViewById(R.id.aplyBtn);
             chat = itemView.findViewById(R.id.chatBtn);
 
+            /*
             chat.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -104,6 +131,7 @@ public class PostAdapter extends FirestoreRecyclerAdapter<ModelPost, PostAdapter
                 }
             });
 
+             */
         }
     }
 
@@ -115,6 +143,7 @@ public class PostAdapter extends FirestoreRecyclerAdapter<ModelPost, PostAdapter
     public void setOnItemClickListener(OnItemClickListener listener){
         this.listener = listener;
     }
+
 
 
 

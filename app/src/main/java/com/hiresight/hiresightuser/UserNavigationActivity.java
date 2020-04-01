@@ -50,11 +50,7 @@ public class UserNavigationActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu){
-        getMenuInflater().inflate(R.menu.search_menu, menu);
-        return true;
-    }
+
 
     public void selectItemDrawer(MenuItem menuItem) {
         Fragment fragment= null;

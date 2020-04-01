@@ -7,16 +7,22 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.SearchView;
 
+import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -29,6 +35,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +64,7 @@ public class Search extends Fragment{
     private String mParam1;
     private String mParam2;
     private Button chatBtn;
+    private String companyName;
 
     private OnFragmentInteractionListener mListener;
 
@@ -89,6 +97,7 @@ public class Search extends Fragment{
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -99,6 +108,7 @@ public class Search extends Fragment{
         db = FirebaseFirestore.getInstance();
         reference = db.collection("Client Posts");
         recyclerView = view.findViewById(R.id.recycler_view);
+
         setUpRecyclerView();
         return view;
     }
@@ -109,11 +119,11 @@ public class Search extends Fragment{
                 .setQuery(query, ModelPost.class)
                 .build();
 
-        adapter = new PostAdapter(options);
+        adapter = new PostAdapter(options, this.getContext());
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
-
+/*
         adapter.setOnItemClickListener(new PostAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(DocumentSnapshot documentSnapshot, int position) {
@@ -126,56 +136,88 @@ public class Search extends Fragment{
                 Intent intent = new Intent(getActivity(), UserMessageActivity.class);
                 intent.putExtra("ClientID", clientID);
                 startActivity(intent);
-
-
             }
         });
+        */
     }
 
+    /*
+    private void searchFilter(final String searchText){
+        Query searchQuery = reference
+                .orderBy("postDateTime", Query.Direction.DESCENDING);
+
+        FirestoreRecyclerOptions<ModelPost> newOptions = new FirestoreRecyclerOptions.Builder<ModelPost>()
+                .setQuery(searchQuery, ModelPost.class)
+                .build();
 
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        adapter.startListening();
+        //adapter.updateOptions(newOptions);
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        adapter.stopListening();
-    }
+*/
 
+           @Override
+           public void onCreateOptionsMenu(Menu menu, MenuInflater inflater){
+               inflater.inflate(R.menu.search_menu, menu);
+               MenuItem item = menu.findItem(R.id.action_search);
+               SearchView search = (SearchView) MenuItemCompat.getActionView(item);
+               search.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                   @Override
+                   public boolean onQueryTextSubmit(String query) {
+                       Intent intent = new Intent(getActivity(), FilteredPost.class);
+                       intent.putExtra("searchText", query);
+                       startActivity(intent);
+                       return false;
+                   }
 
+                   @Override
+                   public boolean onQueryTextChange(String newText) {
+                       return false;
+                   }
+               });
+               super.onCreateOptionsMenu(menu, inflater);
+           }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
+           @Override
+           public void onStart() {
+               super.onStart();
+               adapter.startListening();
+           }
 
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-    }
+           @Override
+           public void onStop() {
+               super.onStop();
+               adapter.stopListening();
+           }
 
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
-    }
+           // TODO: Rename method, update argument and hook method into UI event
+           public void onButtonPressed(Uri uri) {
+               if (mListener != null) {
+                   mListener.onFragmentInteraction(uri);
+               }
+           }
 
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
+           @Override
+           public void onAttach(Context context) {
+               super.onAttach(context);
+           }
+
+           @Override
+           public void onDetach() {
+               super.onDetach();
+               mListener = null;
+           }
+
+           /**
+            * This interface must be implemented by activities that contain this
+            * fragment to allow an interaction in this fragment to be communicated
+            * to the activity and potentially other fragments contained in that
+            * activity.
+            * <p>
+            * See the Android Training lesson <a href=
+            * "http://developer.android.com/training/basics/fragments/communicating.html"
+            * >Communicating with Other Fragments</a> for more information.
+            */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
         void onFragmentInteraction(Uri uri);
